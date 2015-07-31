@@ -1,5 +1,5 @@
 <?php
-require_once('../util/constants.php');
+require_once '../util/constants.php';
 
 Class DraftAPI {
 	
@@ -8,8 +8,8 @@ Class DraftAPI {
 	
 	__construct($draft_table) {
 		$this->draft_table = mysql_real_escape_string($draft_table);
-		$pdo = new PDO('mysql:host=localhost;dbname=fantasyfootball', $user, $pass);
-		$stmt = $pdo->prepare("CREATE TABLE IF NOT EXISTS $this->draft_table (
+		$this->pdo = new PDO('mysql:host=localhost;dbname=fantasyfootball', $user, $pass);
+		$stmt = $this->pdo->prepare("CREATE TABLE IF NOT EXISTS $this->draft_table (
 									  pick SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
 									  rank SMALLINT UNSIGNED, 
 									  team TINYINT
@@ -53,8 +53,8 @@ Class DraftAPI {
 		$trs = $tbody->getElementsByTagName('tr');
 		
 		$stmt = $this->pdo->prepare("INSERT INTO player_rankings 
-											(rank, player_name, player_team, player_position) VALUES 
-											(:rank, :player_name, :player_team, :player_position)");
+										(rank, player_name, player_team, player_position) VALUES 
+										(:rank, :player_name, :player_team, :player_position)");
 		$stmt->bindParam(':rank', $rank);
 		$stmt->bindParam(':player_name', $name);
 		$stmt->bindParam(':player_team', $team);
