@@ -51,7 +51,7 @@ Class Auth {
 										(email, password, access_level, team) VALUES 
 										(:email, :password, :access_level, :team)");
 		$stmt->bindParam(':email', $email);
-		$stmt->bindParam(':password', $password);
+		$stmt->bindParam(':password', password_hash($password, PASSWORD_DEFAULT));
 		$stmt->bindParam(':access_level', ACCESS_LEVEL_OWNER);
 		$stmt->bindParam(':team', $team);
 		$stmt->execute();
