@@ -1,6 +1,15 @@
 <?php
-define('ACCESS_LEVEL_ADMIN',  1);
-define('ACCESS_LEVEL_OWNER',  2);
+require_once('/path/to/app/config/file');
+
+define('ACCESS_LEVEL_OWNER',  1);
+define('ACCESS_LEVEL_ADMIN',  2);
+
+define('NOT_LOGGED_IN',      1),
+define('RESTRICTED_ACCESS',  2);
+define('CSRF_MISMATCH',      3);
+
+define('DRAFT_TYPE_MOCK',  1);
+define('DRAFT_TYPE_REAL',  2);
  
 define('POSITION_QB',   1);
 define('POSITION_RB',   2);
@@ -21,15 +30,6 @@ define('TEAM_MEG',      9);
 define('TEAM_MOLLY',    10);
 define('TEAM_RANDY',    11);
 define('TEAM_RICKY',    12);
-	
-$positions = array(
-	'qb'   => POSITION_QB,
-	'rb'   => POSITION_RB,
-	'wr'   => POSITION_WR,
-	'te'   => POSITION_TE,
-	'dst'  => POSITION_DST,
-	'k'    => POSITION_K
-);
 
 $positions_display = array(
 	POSITION_QB   => 'QB',
@@ -38,21 +38,6 @@ $positions_display = array(
 	POSITION_TE   => 'TE',
 	POSITION_DST  => 'DST',
 	POSITION_K    => 'K'
-);
-
-$teams = array(
-	'abby'    => TEAM_ABBY,
-	'alex'    => TEAM_ALEX,
-	'ben'     => TEAM_BEN,
-	'emilyh'  => TEAM_EMILY_H,
-	'emilyl'  => TEAM_EMILY_L,
-	'jim'     => TEAM_JIM,
-	'maegan'  => TEAM_MAEGAN,
-	'max'     => TEAM_MAX,
-	'meg'     => TEAM_MEG,
-	'molly'   => TEAM_MOLLY,
-	'randy'   => TEAM_RANDY,
-	'ricky'   => TEAM_RICKY
 );
 
 $teams_display = array(

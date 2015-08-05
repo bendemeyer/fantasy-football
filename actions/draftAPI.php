@@ -1,25 +1,47 @@
 <?php
-require_once '../util/constants.php';
 
 Class DraftAPI {
 	
 	$pdo;
-	$draft_table;
+	$draft_id;
 	
-	__construct($draft_table) {
-		$this->draft_table = mysql_real_escape_string($draft_table);
-		$this->pdo = new PDO('mysql:host=localhost;dbname=fantasyfootball', $user, $pass);
-		$stmt = $this->pdo->prepare("CREATE TABLE IF NOT EXISTS $this->draft_table (
-									  pick SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
-									  rank SMALLINT UNSIGNED, 
-									  team TINYINT
-									  PRIMARY KEY (pick)) ENGINE=InnoDB");
-		$stmt->execute();
-		unset($stmt);
+	__construct($draft_id) {
+		$this->draft_id = $draft_id;
+		$this->pdo = new PDO("mysql:host={$app['database']['host']};dbname={$app['database']['name']}", $app['database']['user'], $app['database']['password']);
 	}
 	
 	__destruct() {
 		$this->pdo = null;
+	}
+	
+	function createDraft($name, $type) {
+		$stmt = $this->pdo->prepare("INSERT INTO drafts (name, type) VALUES (:name, :type)";
+		$stmt->bindParam(':name', $name);
+		$stmt->bindParam(':type', $type);
+		$stmt->execute();
+		unset($stmt);
+		
+		$stmt = $this->pdo->prepare("SELECT id FROM drafts ORDER BY id DESC LIMIT 1");
+		$stmt->execute();
+		$row = $stmt->fetch();
+		$this->draft_id = $row['id'];
+		unset($stmt);
+		
+		return json_encode(array('draft_id' => $this->draft_id));
+	}
+	
+	function deleteDraft($draft_id) {
+		$stmt = $this->pdo->prepare("DELETE FROM drafts WHERE id = :id";
+		$stmt->bindParam(':id', $draft_id);
+		$stmt->execute();
+		unset($stmt);
+		
+		$stmt = $this->pdo->prepare("DELETE FROM picks WHERE draft = :draft";
+		$stmt->bindParam(':draft', $draft_id);
+		$stmt->execute();
+		unset($stmt);
+		
+		return json_encode(array('draft_id' => $draft_id));
 	}
 	
 	function refreshPlayerRankings() {
@@ -29,28 +51,24 @@ Class DraftAPI {
 		
 		$create = $this->pdo->prepare("CREATE TABLE player_rankings (
 									  rank SMALLINT UNSIGNED NOT NULL, 
-									  player_name TINYTEXT, player_team TINYTEXT, 
+									  player_name TINYTEXT,
+									  player_team TINYTEXT, 
 									  player_position TINYINT 
 									  PRIMARY KEY (rank)) ENGINE=InnoDB)");
 		$create->execute();
 		unset($create);
 									  
-		$url = urldecode("http://espn.go.com/fantasy/football/story/_/id/12866396/top-300-rankings-2015");
+		$url = 'http://yoursever.com/ff/player/rankings/api/location';
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_HEADER, FALSE);
 		curl_setopt($ch, CURLOPT_NOBODY, FALSE);
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-		$html = curl_exec($ch);
+		$json = curl_exec($ch);
 		curl_close($ch);
 
-		$dom = new DOMDocument();
-		$dom->strictErrorChecking = false;
-		@$dom->loadHTML($html);
-
-		$tbody = $dom->getElementsByTagName('tbody')->item(1);
-		$trs = $tbody->getElementsByTagName('tr');
+		$players = json_decode($json, true);
 		
 		$stmt = $this->pdo->prepare("INSERT INTO player_rankings 
 										(rank, player_name, player_team, player_position) VALUES 
@@ -60,14 +78,11 @@ Class DraftAPI {
 		$stmt->bindParam(':player_team', $team);
 		$stmt->bindParam(':player_position', $pos);
 
-		foreach($trs as $tr) {
-			$text = $tr->getElementsByTagName('td')->item(0)->nodeValue;
-			$dot_array = explode('.', $text);
-			$rank = (int) trim(array_shift($dot_array));
-			$comma_array = explode(',', implode('.', $dot_array));
-			$pos = $positions[strtolower(trim(array_pop($comma_array)))];
-			$name = trim(implode(',', $comma_array));
-			$team = trim($tr->getElementsByTagName('td')->item(1)->nodeValue);
+		foreach($players as $player) {
+			$rank = $player['id'];
+			$pos = $player['pos'];
+			$name = $player['name'];
+			$team = $player['team'];
 
 			$stmt->execute();
 		}
@@ -75,18 +90,21 @@ Class DraftAPI {
 	}
 	
 	function setDraftOrder($draft_order) {
-		$stmt = $this->pdo->prepare("INSERT INTO $this->draft_table (team) VALUES (:team)");
+		$stmt = $this->pdo->prepare("INSERT INTO picks (pick, team, draft) VALUES (:pick, :team, :draft)");
+		$stmt->bindParam(':pick', $pick);
 		$stmt->bindParam(':team', $team);
+		$stmt->bindParam(':draft', $this->draft_id);
 		
-		foreach ($draft_order as $team) {
+		foreach ($draft_order as $pick => $team) {
 			$stmt->execute();
 		}
 		unset($stmt);
 	}
 	
 	function setKeepers($keepers_array) {
-		$stmt = $this->pdo->prepare("SELECT pick FROM $this->draft_table WHERE team = :team ORDER BY pick ASC LIMIT :limit");
+		$stmt = $this->pdo->prepare("SELECT pick FROM picks WHERE team = :team AND draft = :draft ORDER BY pick ASC LIMIT :limit");
 		$stmt->bindParam(':team', $team);
+		Sstmt->bindParam(':draft', $this->draft_id);
 		$stmt->bindParam(':limit', $limit);
 		
 		foreach ($keepers_array as $team => $keepers) {
@@ -104,16 +122,28 @@ Class DraftAPI {
 	}
 	
 	function getPlayers($filter_array = array(), $available_only = true) {
-		$where_clause = $this->_buildWhereClause($filter_array);
-		if ($available_only) {
-			if (!empty($filter_array)) {
-				$where_clause .= " AND ";
+		$where_clause = 'draft = :draft';
+		foreach ($filter_array as $column => $value) {
+			$specific_col = $column == 'team' ? "d.$column" ? "p.$column";
+			if (is_string($value)) {
+				$value = strtolower(str_replace('.', ''));
+				$where .= " AND lower(replace($specific_col, '.', '')) LIKE '%:$column%'";
 			}
-			$where_clause .= "`team` IS NULL";
+			else {
+				$where .= " AND $specific_col = :$column";
+			}
 		}
-		$stmt = $this->pdo->prepare("SELECT * FROM player_rankings as p LEFT JOIN 
-										$this->draft_table as d ON p.rank = d.rank 
+		if ($available_only) {
+			$where_clause .= ' AND team IS NULL';
+		}
+		$stmt = $this->pdo->prepare("SELECT p.rank, p.player_name, p.player_position, p.player_team
+										d.team FROM player_rankings as p LEFT JOIN 
+										picks as d ON p.rank = d.rank 
 										WHERE $where_clause");
+		$stmt->bindParam(':draft', $this->draft_id);
+		foreach ($filter_array as $column => $value) {
+			$stmt->bindParam(":$column", $value);
+		}
 		$stmt->execute();
 		$players = $stmt->fetchAll(PDO::FETCH_ASSOC);
 		
@@ -121,9 +151,21 @@ Class DraftAPI {
 	}
 	
 	function draftPlayer($rank, $pick) {
-		$stmt = $this->pdo->prepare("UPDATE $this->draft_table SET rank = :rank WHERE pick = :pick");
+		$stmt = $this->pdo->prepare("SELECT * FROM player_rankings WHERE rank = :rank");
 		$stmt->bindParam(':rank', $rank);
+		$stmt->execute();
+		$player = $stmt->fetch();
+		unset($stmt);
+		
+		$stmt = $this->pdo->prepare("UPDATE picks SET rank = :rank, player_name = :player_name, 
+										player_team = :player_team, player_position = :player_position 
+										WHERE pick = :pick AND draft = :draft");
+		$stmt->bindParam(':rank', $rank);
+		$stmt->bindParam(':player_name', $player['player_name']);
+		$stmt->bindParam(':player_team', $player['player_team']);
+		$stmt->bindParam(':player_position', $player['player_position']);
 		$stmt->bindParam(':pick'), $pick);
+		$stmt->bindParam(':draft', $this->draft_id);
 		$result = $stmt->execute();
 		unset($stmt);
 		return $result;
@@ -131,33 +173,23 @@ Class DraftAPI {
 	
 	function undraftPlayer($pick = false) {
 		if (!$pick) {
-			$stmt = $this->pdo->prepare("UPDATE $this->draft_table SET rank = NULL ORDER BY pick DESC LIMIT 1");
+			$stmt = $this->pdo->prepare("UPDATE picks SET rank = NULL WHERE draft = :draft ORDER BY pick DESC LIMIT 1");
 		}
 		else {
-			$stmt = $this->pdo->prepare("UPDATE $this->draft_table SET rank = NULL WHERE pick = :pick");
+			$stmt = $this->pdo->prepare("UPDATE picks SET rank = NULL WHERE pick = :pick AND draft = :draft");
 			$stmt->bindParam(':pick', $pick);
 		}
+		$stmt->bindParam(':draft', $this->draft_id);
 		$stmt->execute();
 		unset($stmt);
 	}
 	
-	private function _buildWhereClause($filter_array) {
-		$where = "";
-		$first = true;
-		foreach ($filter_array as $key => $value) {
-			if (!$first) {
-				$where .= " AND ";
-			}
-			$first = false;
-			if (is_string($value)) {
-				$value = str_replace('.', '')
-				$where .= "replace($key, '.', '') LIKE '%$value%'";
-			}
-			else {
-				$where .= "`$key` = '$value'";
-			}
-		}
-		
-		return $where;
+	function getFullDraft() {
+		$stmt = $this->pdo->prepare("SELECT * FROM picks WHERE draft = :draft ORDER BY pick");
+		%stmt->bindParam(':draft', $this->draft_id);
+		$stmt->execute();
+		$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+		unset($stmt);
+		return $result;
 	}
 }
