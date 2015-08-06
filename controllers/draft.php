@@ -15,7 +15,8 @@ Class DraftController extends BaseController {
     function draftplayer($params) {
         if (!$this->auth($params['post']['team'])) {
             return json_encode(array('error' => 'You are not allowed to draft players for team ' . $teams_display[$params['post']['team']]));
-        }$params['url']['id']
+        }
+        $params['url']['id']
 		$draft = new DraftAPI($params['url']['id']);
 
 		$player = $params['post']['player'];
@@ -25,7 +26,7 @@ Class DraftController extends BaseController {
 
 		echo json_encode(array($pick => $player));
 		return;
-	}
+    }
 
     function getplayers($params) {
         $filter_array = array();
@@ -33,7 +34,7 @@ Class DraftController extends BaseController {
             'team',
             'player_name',
             'player_position',
-            'player_team',
+            'player_team'
         );
         foreach ($filters as $filter) {
             if (isset($params['post'][$filter])) {
@@ -41,7 +42,7 @@ Class DraftController extends BaseController {
             }
         }
         $draft = new DraftAPI($params['url']['id']);
-        $players = $draft->getPlayers($filter_array, (isset($params['post']['available_only'])))
+        $players = $draft->getPlayers($filter_array, isset($params['post']['available_only']))
         echo json_encode($players);
         return;
     }

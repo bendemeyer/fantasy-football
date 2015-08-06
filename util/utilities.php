@@ -25,7 +25,15 @@ Class Utilities {
 		if (!empty($post)) {
 			$request->params['post'] = $post;
 		}
-		
+
 		return $request;
+	}
+
+	static errorPage($method, $error_code = null) {
+		$route = new Route('error');
+		require_once $route->getFile();
+		$controller = new {$route->getController()};
+		$controller->{$method}($error_code);
+		die;
 	}
 }

@@ -2,7 +2,7 @@
 define('BASE_PATH', __DIR__);
 
 require_once BASE_PATH . '/util/constants.php';
-require_once BASE_PATH . '/util/routes.php';
+require_once BASE_PATH . '/util/route.php';
 require_once BASE_PATH . '/util/auth.php';
 require_once BASE_PATH . '/util/utilities.php';
 require_once BASE_PATH . '/controllers/base.php';
@@ -11,21 +11,21 @@ if (!isset($_SESSION['csrf_token'])) {
 	$_SESSION['csrf_token'] = bin2hex(openssl_random_pseudo_bytes(32));
 }
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && (!isset $_POST['csrf_token'] || $_POST['csrf_token'] != $_SESSION['csrf_token'])) {
-	require_once $routes['error']['file'];
-	$controller = new $routes['error']['controller'];
-	$controller->unauthorized(CSRF_MISMATCH);
-	exit;
+	Utilities::errorPage('unauthorized', UNAUTHORIZED_CSRF_MISMATCH);
 }
 
 $request = Utilities::getRequestParts($_SERVER['REQUEST_URI']);
-if (isset($routes[$request->route])) {
-	require_once $routes[$request->route]['file'];
-	$controller = new $routes[$request->route]['controller'];
-	if (method_exists($controller, $request->method)) {
-		$controller->{$request->method}($request->params);
-	}
-}
 
-require_once $routes['error']['file'];
-$controller = new $routes['error']['controller'];
-$controller->notFound();
+try {
+	$route = new Route($request->route);
+}
+catch (Exception $e) {
+	Utilities::errorPage('notFound', NOT_FOUND_NO_ROUTE);
+}
+require_once $route->getFile();
+$controller = new {$route->getController()};
+if (method_exists($controller, $request->method)) {
+	$controller->{$request->method}($request->params);
+} else {
+	Utilities::errorPage('notFound', NOT_FOUND_NO_METHOD);
+}

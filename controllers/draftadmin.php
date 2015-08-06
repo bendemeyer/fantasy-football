@@ -1,14 +1,12 @@
 <?php
 require_once BASE_PATH . '/actions/draftAPI.php';
 
-Class MockDraftController extends BaseController {
+Class DraftAdminController extends BaseController {
 	$access_level = 2;
 
 	function index($params) {
 		if (!isset($params['url']['id'])) {
-			require_once $routes['error']['file'];
-			$controller = new $routes['error']['controller'];
-			$controller->noDraftSpecified();
+			Utilities::errorPage('missingParam', MISSING_PARAM_DRAFT);
 		}
 		$draft_table = $params['url']['id'];
 		$draft = new DraftAPI($draft_table);

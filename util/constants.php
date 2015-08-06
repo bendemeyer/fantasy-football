@@ -4,13 +4,18 @@ require_once('/path/to/app/config/file');
 define('ACCESS_LEVEL_OWNER',  1);
 define('ACCESS_LEVEL_ADMIN',  2);
 
-define('NOT_LOGGED_IN',      1),
-define('RESTRICTED_ACCESS',  2);
-define('CSRF_MISMATCH',      3);
+define('UNAUTHORIZED_NOT_LOGGED_IN',      1),
+define('UNAUTHORIZED_RESTRICTED_ACCESS',  2);
+define('UNAUTHORIZED_CSRF_MISMATCH',      3);
+
+define('NOT_FOUND_NO_ROUTE',   1);
+define('NOT_FOUND_NO_METHOD',  2);
+
+define('MISSING_PARAM_DRAFT',  1);
 
 define('DRAFT_TYPE_MOCK',  1);
 define('DRAFT_TYPE_REAL',  2);
- 
+
 define('POSITION_QB',   1);
 define('POSITION_RB',   2);
 define('POSITION_WR',   3);
