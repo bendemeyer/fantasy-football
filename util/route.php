@@ -32,8 +32,8 @@ Class Route {
 	private $controller;
 
 	__construct($route_string) {
-		$this->file = $routes['route_string']['file'];
-		$this->controller = $routes['route_string']['controller'];
+		$this->file = $routes[$route_string]['file'];
+		$this->controller = $routes[$route_string]['controller'];
 		if (!$this->file || !$this->$controller) {
 			throw new Exception('Route does not exist');
 		}
